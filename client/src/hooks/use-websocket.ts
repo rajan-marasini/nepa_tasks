@@ -1,5 +1,5 @@
 import { WS_BASE_URL } from "@/lib/api";
-import type { EventItem } from "@/types/event";
+import type { EventItem, EventsResponse } from "@/types/event";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -51,6 +51,24 @@ export const useWebSocket = ({
               setLastEvent(newEvent);
               onEventReceivedRef.current?.(newEvent);
             }
+            // Instantly inject new event into active event queries cache
+            queryClient.setQueriesData<EventsResponse>(
+              { queryKey: ["events"] },
+              (oldData) => {
+                if (!oldData || !oldData.data) return oldData;
+                if (oldData.data.some((item) => item.id === newEvent.id)) {
+                  return oldData;
+                }
+                return {
+                  ...oldData,
+                  data: [newEvent, ...oldData.data],
+                  pagination: {
+                    ...oldData.pagination,
+                    total: (oldData.pagination?.total || 0) + 1,
+                  },
+                };
+              },
+            );
             queryClient.invalidateQueries({ queryKey: ["events"] });
             queryClient.invalidateQueries({ queryKey: ["analytics"] });
           }

@@ -10,7 +10,7 @@ import {
   type GetAnalyticsParams,
   type GetEventsParams,
 } from "@/lib/api";
-import type { CreateEventInput } from "@/types/event";
+import type { CreateEventInput, EventItem, EventsResponse } from "@/types/event";
 
 export const useEvents = (
   params: GetEventsParams = {},
@@ -39,7 +39,27 @@ export const useCreateEvent = () => {
 
   return useMutation({
     mutationFn: (data: CreateEventInput) => createEvent(data),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      const createdEvent = res?.data as EventItem | undefined;
+      if (createdEvent) {
+        queryClient.setQueriesData<EventsResponse>(
+          { queryKey: ["events"] },
+          (oldData) => {
+            if (!oldData || !oldData.data) return oldData;
+            if (oldData.data.some((item) => item.id === createdEvent.id)) {
+              return oldData;
+            }
+            return {
+              ...oldData,
+              data: [createdEvent, ...oldData.data],
+              pagination: {
+                ...oldData.pagination,
+                total: (oldData.pagination?.total || 0) + 1,
+              },
+            };
+          },
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ["events"] });
       queryClient.invalidateQueries({ queryKey: ["analytics"] });
     },

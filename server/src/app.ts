@@ -10,7 +10,17 @@ import { eventRoutes } from "@/routes";
 
 const app = express();
 
+app.set("etag", false);
+
 app.use(CorsMiddleware);
+// Prevent browser caching on dynamic real-time API endpoints
+app.use("/api", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
+
 // Mount Better Auth handler (handles its own body parsing)
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
