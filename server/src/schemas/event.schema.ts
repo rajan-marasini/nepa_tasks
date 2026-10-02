@@ -55,3 +55,38 @@ export const getEventsQuerySchema = z.object({
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 export type GetEventsQuery = z.infer<typeof getEventsQuerySchema>;
+
+export const getEventAnalyticsQuerySchema = z.object({
+  hours: z
+    .string()
+    .optional()
+    .transform((v) => (v !== undefined ? Number(v) : undefined))
+    .pipe(
+      z
+        .number()
+        .int("hours must be an integer")
+        .min(1, "hours must be at least 1")
+        .max(8760, "hours must not exceed 8760")
+        .optional(),
+    ),
+  event_type: z.string().optional(),
+  date_from: z
+    .string()
+    .datetime({
+      offset: true,
+      message: "date_from must be a valid ISO 8601 datetime string",
+    })
+    .optional(),
+  date_to: z
+    .string()
+    .datetime({
+      offset: true,
+      message: "date_to must be a valid ISO 8601 datetime string",
+    })
+    .optional(),
+});
+
+export type GetEventAnalyticsQuery = z.infer<
+  typeof getEventAnalyticsQuerySchema
+>;
+

@@ -1,8 +1,21 @@
 import { db } from "@/db";
 import { eventsTable } from "@/db/schemas/events.schema";
 import { TryCatch } from "@/middleware/error.handler";
-import type { CreateEventInput, GetEventsQuery } from "@/schemas/event.schema";
-import { and, between, count, desc, eq, gte, lte } from "drizzle-orm";
+import type {
+  CreateEventInput,
+  GetEventAnalyticsQuery,
+  GetEventsQuery,
+} from "@/schemas/event.schema";
+import {
+  and,
+  between,
+  count,
+  countDistinct,
+  desc,
+  eq,
+  gte,
+  lte,
+} from "drizzle-orm";
 import type { Request, Response } from "express";
 
 export const createEvent = TryCatch(async (req: Request, res: Response) => {
@@ -89,3 +102,80 @@ export const getEvents = TryCatch(async (req: Request, res: Response) => {
     },
   });
 });
+
+export const getEventAnalytics = TryCatch(
+  async (req: Request, res: Response) => {
+    const { hours, event_type, date_from, date_to } =
+      req.query as unknown as GetEventAnalyticsQuery;
+
+    const toDate = date_to ? new Date(date_to) : new Date();
+    let fromDate: Date;
+
+    if (date_from) {
+      fromDate = new Date(date_from);
+    } else {
+      const h = hours ?? 24;
+      fromDate = new Date(toDate.getTime() - h * 60 * 60 * 1000);
+    }
+
+    const conditions = [between(eventsTable.timestamp, fromDate, toDate)];
+
+    if (event_type) {
+      conditions.push(eq(eventsTable.event_type, event_type));
+    }
+
+    const whereClause = and(...conditions);
+
+    const [typeCounts, [summaryRow]] = await Promise.all([
+      db
+        .select({
+          event_type: eventsTable.event_type,
+          count: count(),
+        })
+        .from(eventsTable)
+        .where(whereClause)
+        .groupBy(eventsTable.event_type)
+        .orderBy(desc(count())),
+      db
+        .select({
+          total_events: count(),
+          unique_users: countDistinct(eventsTable.user_id),
+        })
+        .from(eventsTable)
+        .where(whereClause),
+    ]);
+
+    const totalEvents = summaryRow?.total_events ?? 0;
+    const uniqueUsers = summaryRow?.unique_users ?? 0;
+
+    const byType = typeCounts.map((item) => ({
+      event_type: item.event_type,
+      count: item.count,
+      percentage:
+        totalEvents > 0
+          ? Number(((item.count / totalEvents) * 100).toFixed(2))
+          : 0,
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        timeframe: {
+          from: fromDate.toISOString(),
+          to: toDate.toISOString(),
+          hours: !date_from && !date_to ? (hours ?? 24) : null,
+        },
+        total_events: totalEvents,
+        unique_users: uniqueUsers,
+        by_type: byType,
+      },
+      filters: {
+        event_type: event_type ?? null,
+        date_from: date_from ?? null,
+        date_to: date_to ?? null,
+        hours: hours ?? (!date_from && !date_to ? 24 : null),
+      },
+    });
+  },
+);
+
