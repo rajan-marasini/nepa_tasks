@@ -2,6 +2,7 @@ import express from "express";
 
 import { CorsMiddleware } from "@/middleware/cors.middleware";
 import { handleError } from "@/middleware/error.handler";
+import { eventRoutes } from "@/routes";
 
 const app = express();
 
@@ -15,6 +16,9 @@ app.get("/", (_req, res) => {
     message: "Real-Time Event Dashboard & API is running...",
   });
 });
+
+// API routes
+app.use("/api/events", eventRoutes);
 
 app.use(handleError);
 
