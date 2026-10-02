@@ -5,10 +5,6 @@ import type { CreateEventInput, GetEventsQuery } from "@/schemas/event.schema";
 import { and, between, count, desc, eq, gte, lte } from "drizzle-orm";
 import type { Request, Response } from "express";
 
-/**
- * POST /api/events
- * Body is pre-validated by the `validate(createEventSchema)` middleware.
- */
 export const createEvent = TryCatch(async (req: Request, res: Response) => {
   const { id, user_id, event_type, payload, timestamp } =
     req.body as CreateEventInput;
@@ -34,16 +30,10 @@ export const createEvent = TryCatch(async (req: Request, res: Response) => {
   });
 });
 
-/**
- * GET /api/events
- * Query params are pre-validated by the `validateQuery(getEventsQuerySchema)` middleware.
- * Supports pagination (page, limit) and filters (event_type, date_from, date_to).
- */
 export const getEvents = TryCatch(async (req: Request, res: Response) => {
   const { page, limit, event_type, date_from, date_to } =
     req.query as unknown as GetEventsQuery;
 
-  // Build dynamic filter conditions
   const conditions = [];
 
   if (event_type) {
