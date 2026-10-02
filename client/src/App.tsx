@@ -1,9 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Navbar } from "@/components/Navbar";
 import { AnalyticsCards } from "@/components/AnalyticsCards";
 import { EventFeed } from "@/components/EventFeed";
 import { EventDetailModal } from "@/components/EventDetailModal";
 import { EventIngestModal } from "@/components/EventIngestModal";
+import { AuthModal } from "@/components/AuthModal";
+import { Toaster } from "@/components/ui/sonner";
 import { useAnalytics, useEvents } from "@/hooks/use-events";
 import { useWebSocket } from "@/hooks/use-websocket";
 import type { EventItem } from "@/types/event";
@@ -17,6 +19,10 @@ export default function App() {
 
   // Modals state
   const [isIngestModalOpen, setIsIngestModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<"login" | "register">(
+    "login",
+  );
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
   const [latestEventId, setLatestEventId] = useState<string | undefined>(
     undefined,
@@ -25,7 +31,6 @@ export default function App() {
   // WebSocket for live event streaming
   const handleEventReceived = useCallback((event: EventItem) => {
     setLatestEventId(event.id);
-    // Clear flash highlight after 4 seconds
     setTimeout(() => {
       setLatestEventId(undefined);
     }, 4000);
@@ -47,20 +52,40 @@ export default function App() {
     event_type: eventTypeFilter === "ALL" ? undefined : eventTypeFilter,
   });
 
+  // Collect all unique event types from analytics + current events for filter dropdown
+  const availableEventTypes = useMemo(() => {
+    const types = new Set<string>();
+    analyticsQuery.data?.data?.by_type?.forEach((item) => {
+      if (item.event_type) types.add(item.event_type);
+    });
+    eventsQuery.data?.data?.forEach((item) => {
+      if (item.event_type) types.add(item.event_type);
+    });
+    return Array.from(types);
+  }, [analyticsQuery.data?.data?.by_type, eventsQuery.data?.data]);
+
   const handleManualRefresh = () => {
     eventsQuery.refetch();
     analyticsQuery.refetch();
   };
 
-  const isRefreshing =
-    eventsQuery.isFetching && !eventsQuery.isLoading;
+  const isRefreshing = eventsQuery.isFetching && !eventsQuery.isLoading;
+
+  const handleOpenAuth = (mode: "login" | "register") => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-muted">
+      {/* Toast Notification Container */}
+      <Toaster position="top-right" richColors />
+
       {/* Top Navigation */}
       <Navbar
         wsStatus={wsStatus}
         onOpenIngestModal={() => setIsIngestModalOpen(true)}
+        onOpenAuthModal={handleOpenAuth}
         onRefresh={handleManualRefresh}
         isRefreshing={isRefreshing}
       />
@@ -82,6 +107,7 @@ export default function App() {
           page={page}
           limit={limit}
           eventType={eventTypeFilter}
+          availableTypes={availableEventTypes}
           onPageChange={(newPage) => setPage(newPage)}
           onLimitChange={(newLimit) => {
             setLimit(newLimit);
@@ -106,10 +132,18 @@ export default function App() {
         </div>
       </footer>
 
+      {/* Better Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        defaultMode={authModalMode}
+      />
+
       {/* Ingest Event Simulator Modal */}
       <EventIngestModal
         isOpen={isIngestModalOpen}
         onClose={() => setIsIngestModalOpen(false)}
+        onOpenAuthModal={handleOpenAuth}
       />
 
       {/* Event Detail Inspector Modal */}
