@@ -4,6 +4,18 @@ A production-ready full-stack application for real-time ingestion, filtering, an
 
 ---
 
+> [!NOTE]
+>
+> ### 💡 Tech Stack Choice: Why Node.js & TypeScript?
+>
+> Out of the options (Node.js/TypeScript, Python/FastAPI, or Go), I went with **Node.js + TypeScript** primarily for speed and consistency:
+>
+> - **Single language across the stack**: Since the frontend is built with React, using TypeScript on the backend meant I could share event payload types and API contracts directly without context switching or mismatching models.
+> - **Straightforward real-time setup**: Handling both the REST API and the WebSocket server (`ws`) within the same lightweight process was quick to set up and works reliably for broadcasting live events.
+> - **Tooling comfort**: I'm most productive with the TypeScript ecosystem (Express, Zod, and Drizzle ORM), which helped me build, validate, and test everything cleanly within the time limit.
+
+---
+
 ## 🏛️ System Architecture
 
 ```
@@ -15,7 +27,7 @@ A production-ready full-stack application for real-time ingestion, filtering, an
                      REST API (HTTP/JSON) │        │ WebSocket (ws://)
                                           ▼        │ Live Event Stream
                                   ┌────────────────┴───────┐
-                                  │     Express + Bun      │
+                                  │        Express         │
                                   │   (Backend REST & WS)  │
                                   └───────┬────────────────┘
                                           │
@@ -28,6 +40,7 @@ A production-ready full-stack application for real-time ingestion, filtering, an
 ```
 
 ### Architecture Highlights
+
 - **Ingestion & Validation Pipeline**: High-performance HTTP endpoint validates incoming event payloads using Zod schemas.
 - **Real-Time Pub/Sub**: Incoming events are immediately broadcast to connected clients over WebSockets via an internal `EventEmitter`, falling back to 5-second polling via TanStack Query.
 - **Security & Reliability**: Configured with `express-rate-limit` (30 req/min per IP), structured error handling for database failures/malformed payloads, and Better Auth authentication.
@@ -37,18 +50,18 @@ A production-ready full-stack application for real-time ingestion, filtering, an
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-| :--- | :--- |
-| **Backend Runtime & Server** | [Bun](https://bun.sh/) / [Express.js](https://expressjs.com/) / TypeScript |
-| **Database & ORM** | [PostgreSQL](https://www.postgresql.org/) / [Drizzle ORM](https://orm.drizzle.team/) |
-| **Real-Time Streaming** | Native WebSockets (`ws`) + Node `EventEmitter` |
-| **Validation & Security** | [Zod v4](https://zod.dev/), `express-rate-limit`, `cors` |
-| **Authentication** | [Better Auth](https://www.better-auth.com/) |
-| **Frontend Framework** | [React 19](https://react.dev/), [Vite](https://vitejs.dev/), TypeScript |
-| **Styling & Components** | [Tailwind CSS v4](https://tailwindcss.com/), Radix UI / shadcn, Lucide Icons |
-| **State & Data Fetching** | [TanStack React Query](https://tanstack.com/query/latest) |
-| **Testing** | Bun Test runner (Unit & Integration) |
-| **DevOps & Containers** | Docker, Nginx, Docker Compose |
+| Layer                        | Technology                                                                           |
+| :--------------------------- | :----------------------------------------------------------------------------------- |
+| **Backend Runtime & Server** | [Bun](https://bun.sh/) / [Express.js](https://expressjs.com/) / TypeScript           |
+| **Database & ORM**           | [PostgreSQL](https://www.postgresql.org/) / [Drizzle ORM](https://orm.drizzle.team/) |
+| **Real-Time Streaming**      | Native WebSockets (`ws`) + Node `EventEmitter`                                       |
+| **Validation & Security**    | [Zod v4](https://zod.dev/), `express-rate-limit`, `cors`                             |
+| **Authentication**           | [Better Auth](https://www.better-auth.com/)                                          |
+| **Frontend Framework**       | [React 19](https://react.dev/), [Vite](https://vitejs.dev/), TypeScript              |
+| **Styling & Components**     | [Tailwind CSS v4](https://tailwindcss.com/), Radix UI / shadcn, Lucide Icons         |
+| **State & Data Fetching**    | [TanStack React Query](https://tanstack.com/query/latest)                            |
+| **Testing**                  | Bun Test runner (Unit & Integration)                                                 |
+| **DevOps & Containers**      | Docker, Nginx, Docker Compose                                                        |
 
 ---
 
@@ -69,12 +82,14 @@ docker compose up --build
 ```
 
 Services will be available at:
+
 - 🌐 **Frontend Dashboard**: [http://localhost:3000](http://localhost:3000)
 - 🔌 **Backend API**: [http://localhost:8000](http://localhost:8000)
 - 📡 **WebSocket Stream**: `ws://localhost:8000/ws`
 - 🐘 **PostgreSQL**: `localhost:5432`
 
 To tear down containers:
+
 ```bash
 docker compose down -v
 ```
@@ -84,6 +99,7 @@ docker compose down -v
 ## 💻 Local Development Setup
 
 ### Prerequisites
+
 - [Bun](https://bun.sh/) (v1.1+)
 - [PostgreSQL](https://www.postgresql.org/) running locally
 
@@ -104,6 +120,7 @@ bun run db:push
 # Start development server
 bun run dev
 ```
+
 Backend will start on `http://localhost:8000`.
 
 ### 2. Frontend Setup
@@ -120,6 +137,7 @@ bun install
 # Start Vite development server
 bun run dev
 ```
+
 Frontend will start on `http://localhost:5173`.
 
 ---
@@ -134,6 +152,7 @@ bun test
 ```
 
 Test coverage includes:
+
 - ✅ `createEventSchema`, `getEventsQuerySchema`, `getEventAnalyticsQuerySchema`
 - ✅ `AppError` and custom status codes
 - ✅ `EventEmitter` pub/sub messaging
@@ -145,6 +164,7 @@ Test coverage includes:
 ## 📖 API Documentation
 
 ### 1. Ingest Event
+
 **`POST /api/events`**
 
 Ingests a new activity log event, saves it to PostgreSQL, and broadcasts it in real-time.
@@ -152,6 +172,7 @@ Ingests a new activity log event, saves it to PostgreSQL, and broadcasts it in r
 - **Request Headers**: `Content-Type: application/json`
 - **Rate Limit**: 30 requests / minute per IP
 - **Request Body**:
+
 ```json
 {
   "id": "e44146a8-208b-4fc6-b8cb-4e963ee3e8e1",
@@ -167,6 +188,7 @@ Ingests a new activity log event, saves it to PostgreSQL, and broadcasts it in r
 ```
 
 - **Response `(201 Created)`**:
+
 ```json
 {
   "success": true,
@@ -189,6 +211,7 @@ Ingests a new activity log event, saves it to PostgreSQL, and broadcasts it in r
 ---
 
 ### 2. Retrieve Events (Paginated & Filtered)
+
 **`GET /api/events`**
 
 - **Query Parameters**:
@@ -199,6 +222,7 @@ Ingests a new activity log event, saves it to PostgreSQL, and broadcasts it in r
   - `date_to` (optional): ISO 8601 end date.
 
 - **Response `(200 OK)`**:
+
 ```json
 {
   "success": true,
@@ -231,6 +255,7 @@ Ingests a new activity log event, saves it to PostgreSQL, and broadcasts it in r
 ---
 
 ### 3. Get Aggregate Analytics
+
 **`GET /api/events/analytics`**
 
 - **Query Parameters**:
@@ -239,6 +264,7 @@ Ingests a new activity log event, saves it to PostgreSQL, and broadcasts it in r
   - `date_from` / `date_to` (optional): Custom timeframe range.
 
 - **Response `(200 OK)`**:
+
 ```json
 {
   "success": true,
@@ -274,9 +300,11 @@ Ingests a new activity log event, saves it to PostgreSQL, and broadcasts it in r
 ---
 
 ### 4. WebSocket Streaming
+
 **`ws://localhost:8000/ws`**
 
 Connect to receive live broadcasts whenever any event is ingested:
+
 ```json
 {
   "type": "NEW_EVENT",
@@ -303,10 +331,10 @@ All API error responses follow a consistent structured schema:
 }
 ```
 
-| HTTP Code | Description |
-| :--- | :--- |
-| `400 Bad Request` | Zod validation failure or malformed JSON payload |
-| `409 Conflict` | Duplicate record (e.g. duplicate UUID) |
-| `429 Too Many Requests` | IP rate limit exceeded (30 req / min) |
-| `503 Service Unavailable` | PostgreSQL database connection unreachable |
-| `500 Internal Error` | Unhandled server error |
+| HTTP Code                 | Description                                      |
+| :------------------------ | :----------------------------------------------- |
+| `400 Bad Request`         | Zod validation failure or malformed JSON payload |
+| `409 Conflict`            | Duplicate record (e.g. duplicate UUID)           |
+| `429 Too Many Requests`   | IP rate limit exceeded (30 req / min)            |
+| `503 Service Unavailable` | PostgreSQL database connection unreachable       |
+| `500 Internal Error`      | Unhandled server error                           |
