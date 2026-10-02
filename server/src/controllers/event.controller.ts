@@ -1,5 +1,6 @@
 import { db } from "@/db";
 import { eventsTable } from "@/db/schemas/events.schema";
+import { eventEmitter } from "@/lib/event-emitter";
 import { TryCatch } from "@/middleware/error.handler";
 import type {
   CreateEventInput,
@@ -33,13 +34,18 @@ export const createEvent = TryCatch(async (req: Request, res: Response) => {
     })
     .returning();
 
+  const formattedEvent = {
+    ...event,
+    payload: JSON.parse(event!.payload),
+  };
+
+  // Broadcast to real-time subscribers
+  eventEmitter.emit("event:created", formattedEvent);
+
   res.status(201).json({
     success: true,
     message: "Event created successfully",
-    data: {
-      ...event,
-      payload: JSON.parse(event!.payload),
-    },
+    data: formattedEvent,
   });
 });
 
