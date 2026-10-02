@@ -1,26 +1,30 @@
 import http from "http";
 
 import app from "@/app";
+import { testConnection } from "@/db";
 import logger from "@/lib/logger";
 
 const PORT = process.env.PORT || 8000;
 const server = http.createServer(app);
 
-const startServer = () => {
+const startServer = async () => {
   try {
+    await testConnection();
+    logger.info("Database connection established");
+
     server.listen(PORT, () => {
-      logger.info(`Sever is running on port ${PORT}`);
+      logger.info(`Server is running on port ${PORT}`);
     });
   } catch (error) {
-    console.error(error);
+    logger.error("Failed to connect to the database", { error });
     process.exit(1);
   }
 };
 
 const shutdown = () => {
-  console.log("Server is shutting down");
+  logger.warn("Server is shutting down");
   server.close(() => {
-    console.log("Server closed");
+    logger.info("Server closed");
     process.exit(0);
   });
 };
