@@ -1,5 +1,7 @@
 import http from "http";
-import app from "./app";
+
+import app from "@/app";
+import logger from "@/lib/logger";
 
 const PORT = process.env.PORT || 8000;
 const server = http.createServer(app);
@@ -7,7 +9,7 @@ const server = http.createServer(app);
 const startServer = () => {
   try {
     server.listen(PORT, () => {
-      console.log(`Sever is running on port ${PORT}`);
+      logger.info(`Sever is running on port ${PORT}`);
     });
   } catch (error) {
     console.error(error);
